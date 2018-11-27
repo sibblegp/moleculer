@@ -8,15 +8,17 @@ const FakeTransporter = require("../../src/transporters/fake");
 const E = require("../../src/errors");
 const P = require("../../src/packets");
 
+const transitOptions = { packetLogFilter: [], disableReconnect: false };
+
 describe("Test Transporter constructor", () => {
 
 	const broker = new ServiceBroker({ logger: false });
 	const transporter = new FakeTransporter();
 
 	it("create instance", () => {
-		let transit = new Transit(broker, transporter);
+		let transit = new Transit(broker, transporter, transitOptions);
 		expect(transit).toBeDefined();
-		expect(transit.opts).toBeUndefined();
+		expect(transit.opts).toBeDefined();
 		expect(transit.logger).toBeDefined();
 		expect(transit.nodeID).toBe(broker.nodeID);
 		expect(transit.pendingRequests).toBeInstanceOf(Map);
@@ -49,7 +51,7 @@ describe("Test Transporter constructor", () => {
 
 	it("should call transporter.init", () => {
 		transporter.init = jest.fn();
-		let transit = new Transit(broker, transporter);
+		let transit = new Transit(broker, transporter, transitOptions);
 
 		expect(transporter.init).toHaveBeenCalledTimes(1);
 		expect(transporter.init).toHaveBeenCalledWith(transit, jasmine.any(Function), jasmine.any(Function));
@@ -60,7 +62,7 @@ describe("Test Transit.connect", () => {
 
 	const broker = new ServiceBroker({ logger: false });
 	const transporter = new FakeTransporter();
-	const transit = new Transit(broker, transporter);
+	const transit = new Transit(broker, transporter, transitOptions);
 
 	transporter.connect = jest.fn(() => Promise.resolve());
 
@@ -101,7 +103,7 @@ describe("Test Transit.afterConnect", () => {
 
 	const broker = new ServiceBroker({ logger: false });
 	const transporter = new FakeTransporter();
-	const transit = new Transit(broker, transporter);
+	const transit = new Transit(broker, transporter, transitOptions);
 
 	let resolver;
 
@@ -146,7 +148,7 @@ describe("Test Transit.disconnect", () => {
 
 	const broker = new ServiceBroker({ logger: false });
 	const transporter = new FakeTransporter();
-	const transit = new Transit(broker, transporter);
+	const transit = new Transit(broker, transporter, transitOptions);
 
 	transit.sendDisconnectPacket = jest.fn(() => Promise.resolve());
 	broker.broadcastLocal = jest.fn();
@@ -179,7 +181,7 @@ describe("Test Transit.ready", () => {
 
 	const broker = new ServiceBroker({ logger: false });
 	const transporter = new FakeTransporter();
-	const transit = new Transit(broker, transporter);
+	const transit = new Transit(broker, transporter, transitOptions);
 
 	transit.sendNodeInfo = jest.fn(() => Promise.resolve());
 
@@ -235,18 +237,18 @@ describe("Test Transit.makeSubscriptions", () => {
 		return transit.makeSubscriptions().catch(protectReject).then(() => {
 			expect(transit.tx.makeSubscriptions).toHaveBeenCalledTimes(1);
 			expect(transit.tx.makeSubscriptions).toHaveBeenCalledWith([
-				{"cmd": "EVENT",	"nodeID": "node1" },
-				{"cmd": "REQ",		"nodeID": "node1" },
-				{"cmd": "RES",		"nodeID": "node1" },
-				{"cmd": "DISCOVER" },
-				{"cmd": "DISCOVER",	"nodeID": "node1" },
-				{"cmd": "INFO" },
-				{"cmd": "INFO",		"nodeID": "node1" },
-				{"cmd": "DISCONNECT" },
-				{"cmd": "HEARTBEAT" },
-				{"cmd": "PING"},
-				{"cmd": "PING",		"nodeID": "node1" },
-				{"cmd": "PONG",		"nodeID": "node1" }
+				{ "cmd": "EVENT",	"nodeID": "node1" },
+				{ "cmd": "REQ",		"nodeID": "node1" },
+				{ "cmd": "RES",		"nodeID": "node1" },
+				{ "cmd": "DISCOVER" },
+				{ "cmd": "DISCOVER",	"nodeID": "node1" },
+				{ "cmd": "INFO" },
+				{ "cmd": "INFO",		"nodeID": "node1" },
+				{ "cmd": "DISCONNECT" },
+				{ "cmd": "HEARTBEAT" },
+				{ "cmd": "PING" },
+				{ "cmd": "PING",		"nodeID": "node1" },
+				{ "cmd": "PONG",		"nodeID": "node1" }
 			]);
 		});
 	});
@@ -372,7 +374,7 @@ describe("Test Transit.messageHandler", () => {
 	});
 
 	it("should throw Error if version mismatch", () => {
-		expect(transit.messageHandler("EVENT", { payload: { ver: "1"} })).toBe(false);
+		expect(transit.messageHandler("EVENT", { payload: { ver: "1" } })).toBe(false);
 	});
 
 	it("should call _requestHandler if topic is 'REQ' ", () => {
@@ -572,7 +574,7 @@ describe("Test Transit._requestHandler", () => {
 			// Check context props
 			expect(ctx).toBeInstanceOf(Context);
 			expect(ctx.id).toBe("123");
-			expect(ctx.params).toEqual({"title": "Hello"});
+			expect(ctx.params).toEqual({ "title": "Hello" });
 			expect(ctx.meta).toEqual({ b: 100 });
 			expect(ctx.options.timeout).toBe(2600);
 
@@ -666,7 +668,7 @@ describe("Test Transit._responseHandler", () => {
 			retryable: true,
 			data: { a: 5 },
 			stack: "STACK-TRACE"
-		}};
+		} };
 
 		transit._responseHandler(payload);
 		expect(req.reject).toHaveBeenCalledTimes(1);
@@ -703,7 +705,7 @@ describe("Test Transit._responseHandler", () => {
 			retryable: true,
 			data: { a: 5 },
 			stack: "MY-STACK-TRACE"
-		}};
+		} };
 
 		transit._responseHandler(payload);
 		expect(req.reject).toHaveBeenCalledTimes(1);
@@ -740,7 +742,7 @@ describe("Test Transit._eventHandler", () => {
 		});
 
 		expect(broker.emitLocalServices).toHaveBeenCalledTimes(1);
-		expect(broker.emitLocalServices).toHaveBeenCalledWith("user.created", {"a": 5}, ["users"], "node-1", true);
+		expect(broker.emitLocalServices).toHaveBeenCalledWith("user.created", { "a": 5 }, ["users"], "node-1", true);
 	});
 
 });
@@ -846,7 +848,7 @@ describe("Test Transit.removePendingRequestByNodeID", () => {
 
 	const resolve = jest.fn();
 	const reject = jest.fn();
-	const ep = { action: { name: "users.create"}, node: { id: "node1" }};
+	const ep = { action: { name: "users.create" }, node: { id: "node1" } };
 	const ctx = new Context(broker, ep);
 	ctx.id = 1;
 	ctx.nodeID = "node2";
@@ -1037,7 +1039,7 @@ describe("Test Transit.processPong", () => {
 		transit.processPong({ sender: "node-2", arrived: now, time: now - 500 });
 
 		expect(broker.broadcastLocal).toHaveBeenCalledTimes(1);
-		expect(broker.broadcastLocal).toHaveBeenCalledWith("$node.pong", {"elapsedTime": jasmine.any(Number), "nodeID": "node-2", "timeDiff": jasmine.any(Number)});
+		expect(broker.broadcastLocal).toHaveBeenCalledWith("$node.pong", { "elapsedTime": jasmine.any(Number), "nodeID": "node-2", "timeDiff": jasmine.any(Number) });
 	});
 
 });
@@ -1112,5 +1114,43 @@ describe("Test Transit.publish", () => {
 		});
 	});
 
+});
+
+describe("Test packetLogFilter option", () => {
+
+	it("should disable logging for incoming packety of type defined in packetLogFilter", () => {
+		const logger = { debug: jest.fn(), info: () => { }, warn: () => { }, error: () => { }, fatal: () => { } };
+		const broker = new ServiceBroker({ logger: () => logger, transit: { packetLogFilter: ["HEARTBEAT", "INFO"] }, logLevel: "debug", nodeID: "node1", transporter: new FakeTransporter() });
+		const transit = broker.transit;
+		broker.logger = jest.fn();
+		let payload = { ver: "3", sender: "remote", cpu: 100 };
+
+		transit.messageHandler("DISCOVER", { payload });
+		expect(logger.debug).toHaveBeenCalledWith("Incoming DISCOVER packet from 'remote'");
+
+		transit.messageHandler("HEARTBEAT", { payload });
+		expect(logger.debug).not.toHaveBeenCalledWith("Incoming HEARTBEAT packet from 'remote'");
+
+		transit.messageHandler("INFO", { payload });
+		expect(logger.debug).not.toHaveBeenCalledWith("Incoming INFO packet from 'remote'");
+
+		transit.publish(new P.Packet("HEARTBEAT", "remote", payload));
+		expect(logger.debug).not.toHaveBeenCalledWith("Send  packet to 'remote'");
+	});
+
+	it("should disable logging of outgoing packets of type defined in packetLogFilter", () => {
+		const logger = { debug: jest.fn(), info: () => { }, warn: () => { }, error: () => { }, fatal: () => { } };
+		const broker = new ServiceBroker({ logger: () => logger, transit: { packetLogFilter: ["HEARTBEAT", "INFO"] }, logLevel: "debug", nodeID: "node1", transporter: new FakeTransporter() });
+		const transit = broker.transit;
+		broker.logger = jest.fn();
+
+		let payload = { ver: "3", sender: "remote", services: JSON.stringify([]) };
+		transit.publish(new P.Packet("DISCOVER", "remote", { payload }));
+		expect(logger.debug).toHaveBeenCalledWith("Send DISCOVER packet to 'remote'");
+
+		payload = { ver: "3", sender: "remote", cpu: 100 };
+		transit.publish(new P.Packet("HEARTBEAT", "remote", payload));
+		expect(logger.debug).not.toHaveBeenCalledWith("Send HEARTBEAT packet to 'remote'");
+	});
 });
 

@@ -53,7 +53,7 @@ describe("Test AmqpTransporter constructor", () => {
 		let transporter = new AmqpTransporter("amqp://localhost");
 		expect(transporter).toBeDefined();
 		expect(transporter.opts).toEqual({
-			url: "amqp://localhost",
+			url: ["amqp://localhost"],
 			prefetch: 1,
 			eventTimeToLive: null,
 			heartbeatTimeToLive: null,
@@ -72,7 +72,7 @@ describe("Test AmqpTransporter constructor", () => {
 
 	it("check constructor with options", () => {
 		let opts = {
-			url: "amqp://localhost",
+			url: ["amqp://localhost"],
 			prefetch: 3,
 			eventTimeToLive: 10000,
 			heartbeatTimeToLive: 30000,
@@ -272,7 +272,7 @@ describe("Test AmqpTransporter subscribe", () => {
 				expect(transporter.channel.assertQueue).toHaveBeenCalledTimes(1);
 				expect(transporter.channel.consume).toHaveBeenCalledTimes(1);
 				expect(transporter.channel.assertQueue)
-					.toHaveBeenCalledWith("MOL-TEST.INFO.node", {"autoDelete": true});
+					.toHaveBeenCalledWith("MOL-TEST.INFO.node", { "autoDelete": true });
 				expect(transporter.channel.consume)
 					.toHaveBeenCalledWith("MOL-TEST.INFO.node", jasmine.any(Function), { noAck: true });
 
@@ -334,7 +334,7 @@ describe("Test AmqpTransporter subscribe", () => {
 				expect(transporter.channel.consume).toHaveBeenCalledTimes(1);
 
 				expect(transporter.channel.assertQueue)
-					.toHaveBeenCalledWith("MOL-TEST.HEARTBEAT.node", { autoDelete: true, messageTtl: 4000});
+					.toHaveBeenCalledWith("MOL-TEST.HEARTBEAT.node", { autoDelete: true, messageTtl: 4000 });
 				expect(transporter.channel.assertExchange)
 					.toHaveBeenCalledWith("MOL-TEST.HEARTBEAT", "fanout", {});
 				expect(transporter.channel.bindQueue)
@@ -410,7 +410,7 @@ describe("Test AmqpTransporter subscribe", () => {
 				expect(transporter.channel.consume).toHaveBeenCalledTimes(1);
 				expect(transporter.channel.assertQueue)
 					.toHaveBeenCalledWith("MOL-TEST.EVENTB.posts.cache.clear",
-						{ messageTtl: 3000});
+						{ messageTtl: 3000 });
 				expect(transporter.channel.consume)
 					.toHaveBeenCalledWith("MOL-TEST.EVENTB.posts.cache.clear", jasmine.any(Function), {});
 
@@ -426,11 +426,6 @@ describe("Test AmqpTransporter subscribe", () => {
 describe("Test AmqpTransporter publish", () => {
 	let transporter;
 	let msgHandler;
-
-	const fakeTransit = {
-		nodeID: "node1",
-		serialize: jest.fn(msg => Buffer.from(JSON.stringify(msg)))
-	};
 
 	beforeEach(() => {
 		msgHandler = jest.fn();

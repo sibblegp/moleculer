@@ -84,7 +84,9 @@ const defaultOptions = {
 	},
 
 	transit: {
-		maxQueueSize: 50 * 1000 // 50k ~ 400MB
+		maxQueueSize: 50 * 1000, // 50k ~ 400MB,
+		packetLogFilter: [],
+		disableReconnect: false
 	},
 
 	cacher: null,
@@ -1013,6 +1015,7 @@ class ServiceBroker {
 		}
 	}
 
+
 	/**
 	 * Emit an event (grouped & balanced global event)
 	 *
@@ -1044,7 +1047,7 @@ class ServiceBroker {
 				if (ep) {
 					if (ep.id == this.nodeID) {
 						// Local service, call handler
-						ep.event.handler(payload, this.nodeID, eventName);
+						this.registry.events.callEventHandler(ep.event.handler, payload, this.nodeID, eventName);
 					} else {
 						// Remote service
 						const e = groupedEP[ep.id];

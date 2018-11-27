@@ -149,15 +149,32 @@ class EventCatalog {
 				if (broadcast) {
 					list.endpoints.forEach(ep => {
 						if (ep.local && ep.event.handler)
-							ep.event.handler(payload, nodeID, eventName);
+							this.callEventHandler(ep.event.handler, payload, nodeID, eventName);
 					});
 				} else {
 					const ep = list.nextLocal();
 					if (ep && ep.event.handler)
-						ep.event.handler(payload, nodeID, eventName);
+						this.callEventHandler(ep.event.handler, payload, nodeID, eventName);
 				}
 			}
 		});
+	}
+
+	/**
+	 * Call local event handler and handles unhandled promise rejections.
+	 *
+	 * @param {Function} handler
+	 * @param {any} payload
+	 * @param {String} sender
+	 * @param {String} eventName
+	 *
+	 * @memberof EventCatalog
+	 */
+	callEventHandler(handler, payload, sender, eventName) {
+		const res = handler(payload, sender, eventName);
+		if (utils.isPromise(res))
+			return res.catch(err => this.broker.logger.error(err));
+		return res;
 	}
 
 	/**
@@ -194,7 +211,7 @@ class EventCatalog {
 	 *
 	 * @memberof EventCatalog
 	 */
-	list({onlyLocal = false, onlyAvailable = false, skipInternal = false, withEndpoints = false}) {
+	list({ onlyLocal = false, onlyAvailable = false, skipInternal = false, withEndpoints = false }) {
 		let res = [];
 
 		this.events.forEach(list => {
